@@ -1,0 +1,169 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<script>
+AFRAME.registerShader("chromakey", {
+  schema: { src: { type: "map", is: "uniform" } },
+  vertexShader: "varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix*modelViewMatrix*vec4(position,1.0); }",
+  fragmentShader: "uniform sampler2D src; varying vec2 vUv; void main(){ vec4 c = texture2D(src, vUv); float d = c.g - max(c.r,c.b); float a = 1.0 - smoothstep(0.08,0.25,d); c.g = min(c.g, max(c.r,c.b)+0.02); gl_FragColor = vec4(c.rgb, a); }"
+});
+</script>
+<style>
+body{margin:0;overflow:hidden;font-family:sans-serif;background:transparent}
+#hint{position:fixed;top:14px;left:0;right:0;text-align:center;color:#fff;font:700 18px sans-serif;
+  text-shadow:0 1px 4px #000;z-index:9;pointer-events:none;transition:opacity .3s}
+#world{position:fixed;inset:0;z-index:30;display:none}
+#world.show{display:block}
+#closeBtn{position:fixed;top:16px;right:16px;z-index:40;width:40px;height:40px;border-radius:50%;
+  background:rgba(20,15,25,.75);color:#fff;border:2px solid #fff;font-size:18px;font-weight:700;display:none}
+#closeBtn.show{display:block}
+#lookHint{position:fixed;bottom:26px;left:0;right:0;text-align:center;color:#fff;font:700 16px sans-serif;
+  text-shadow:0 1px 4px #000;z-index:40;display:none;transition:opacity 1s}
+#lookHint.show{display:block}
+#caption{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#fff;color:#c0281f;
+  font-weight:800;font-size:17px;padding:7px 18px;border-radius:20px;z-index:40;display:none;
+  box-shadow:0 3px 10px rgba(0,0,0,.35);white-space:nowrap}
+#caption.show{display:block}
+</style></head><body>
+
+<div id="hint">Point your camera at a colouring page</div>
+
+<a-scene mindar-image="imageTargetSrc: ./targets.mind" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+<a-assets><video id="srcVid" src="santa-green.mp4" loop muted playsinline webkit-playsinline preload="auto"></video></a-assets>
+<a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+<a-entity mindar-image-target="targetIndex: 0" data-caption="Trim the tree!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 1" data-caption="Build a snowman!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 2" data-caption="Open the surprise!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 3" data-caption="Make it sparkle!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 4" data-caption="Sweet and stripy!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 5" data-caption="Fill the stocking!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 6" data-caption="Decorate the cookie!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 7" data-caption="Ring, ring, ring!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 8" data-caption="Santa's hat!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 9" data-caption="No two snowflakes match!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 10" data-caption="Trim the tree!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 11" data-caption="Build a snowman!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 12" data-caption="Open the surprise!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 13" data-caption="Make it sparkle!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 14" data-caption="Sweet and stripy!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 15" data-caption="Fill the stocking!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 16" data-caption="Decorate the cookie!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 17" data-caption="Ring, ring, ring!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 18" data-caption="Santa's hat!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 19" data-caption="No two snowflakes match!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 20" data-caption="Trim the tree!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 21" data-caption="Build a snowman!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 22" data-caption="Open the surprise!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 23" data-caption="Make it sparkle!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 24" data-caption="Sweet and stripy!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 25" data-caption="Fill the stocking!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 26" data-caption="Decorate the cookie!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 27" data-caption="Ring, ring, ring!"></a-entity>
+<a-entity mindar-image-target="targetIndex: 28" data-caption="Santa's hat!"></a-entity>
+</a-scene>
+
+<button id="closeBtn">✕</button>
+<div id="lookHint">Santa's in front — turn around for more! ✨</div>
+<div id="caption">Ho ho ho!</div>
+<div id="world"></div>
+
+<script>
+const hint = document.getElementById('hint');
+const worldDiv = document.getElementById('world');
+const closeBtn = document.getElementById('closeBtn');
+const lookHint = document.getElementById('lookHint');
+const caption = document.getElementById('caption');
+let openFor = null;
+
+const WORLD_INNER = `
+<a-scene embedded renderer="alpha:true; colorManagement:true" vr-mode-ui="enabled:false" device-orientation-permission-ui="enabled: true">
+  <a-camera position="0 1.2 0" rotation="-8 0 0" look-controls="magicWindowTrackingEnabled:true; touchEnabled:true; pointerLockEnabled:false"></a-camera>
+  <a-sphere radius="0.035" color="#fff" material="shader:flat" position="-1.76 3.4 -3.49" animation="property: position; to: -1.76 -1.1 -3.49; dur: 6166; delay: 197; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-4.28 3.4 0.36" animation="property: position; to: -4.28 -1.1 0.36; dur: 4997; delay: 2387; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-4.42 3.4 0.07" animation="property: position; to: -4.42 -1.1 0.07; dur: 3653; delay: 352; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-0.66 3.4 -4.3" animation="property: position; to: -0.66 -1.1 -4.3; dur: 3871; delay: 2257; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-0.75 3.4 3.27" animation="property: position; to: -0.75 -1.1 3.27; dur: 4007; delay: 3880; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-2.77 3.4 1.27" animation="property: position; to: -2.77 -1.1 1.27; dur: 3753; delay: 2363; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="0.86 3.4 -4.5" animation="property: position; to: 0.86 -1.1 -4.5; dur: 4405; delay: 190; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="0.57 3.4 -3.67" animation="property: position; to: 0.57 -1.1 -3.67; dur: 5216; delay: 590; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="0.41 3.4 0.71" animation="property: position; to: 0.41 -1.1 0.71; dur: 5794; delay: 3342; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="1.82 3.4 -3.97" animation="property: position; to: 1.82 -1.1 -3.97; dur: 5839; delay: 2616; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-3.12 3.4 -4.03" animation="property: position; to: -3.12 -1.1 -4.03; dur: 6416; delay: 257; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="0.64 3.4 1.19" animation="property: position; to: 0.64 -1.1 1.19; dur: 5533; delay: 2786; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="0.32 3.4 2.77" animation="property: position; to: 0.32 -1.1 2.77; dur: 5407; delay: 2398; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="4.23 3.4 -1.38" animation="property: position; to: 4.23 -1.1 -1.38; dur: 4517; delay: 3253; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-3.2 3.4 2.8" animation="property: position; to: -3.2 -1.1 2.8; dur: 3835; delay: 2352; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-2.0 3.4 -0.05" animation="property: position; to: -2.0 -1.1 -0.05; dur: 4906; delay: 2987; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-0.51 3.4 1.09" animation="property: position; to: -0.51 -1.1 1.09; dur: 3799; delay: 483; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="0.12 3.4 -3.35" animation="property: position; to: 0.12 -1.1 -3.35; dur: 4901; delay: 622; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="4.33 3.4 -0.78" animation="property: position; to: 4.33 -1.1 -0.78; dur: 6237; delay: 317; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="2.65 3.4 0.73" animation="property: position; to: 2.65 -1.1 0.73; dur: 6851; delay: 1285; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-1.6 3.4 -1.5" animation="property: position; to: -1.6 -1.1 -1.5; dur: 5534; delay: 2375; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="2.97 3.4 -4.31" animation="property: position; to: 2.97 -1.1 -4.31; dur: 3883; delay: 3869; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="-2.3 3.4 1.97" animation="property: position; to: -2.3 -1.1 1.97; dur: 3766; delay: 248; loop: true; easing: linear"></a-sphere>
+<a-sphere radius="0.035" color="#fff" material="shader:flat" position="2.31 3.4 -1.9" animation="property: position; to: 2.31 -1.1 -1.9; dur: 5867; delay: 2790; loop: true; easing: linear"></a-sphere>
+  
+<a-entity position="0 -1 3.2">
+  <a-cylinder radius="0.1" height="0.4" position="0 0.2 0" color="#4a2f1c"></a-cylinder>
+  <a-cone radius-bottom="1.1" radius-top="0" height="1.9" position="0 1.35 0" color="#0f5c33"></a-cone>
+  <a-cone radius-bottom="0.85" radius-top="0" height="1.5" position="0 2.15 0" color="#136b3b"></a-cone>
+  <a-cone radius-bottom="0.6" radius-top="0" height="1.1" position="0 2.85 0" color="#178044"></a-cone>
+  <a-tetrahedron radius="0.22" position="0 3.55 0" color="#f4c430" material="shader:flat"
+    animation="property: rotation; to: 0 360 0; dur: 6000; loop: true; easing: linear"></a-tetrahedron>
+  <a-sphere radius="0.07" position="-0.5 1.6 0.55" color="#e0352b" material="shader:flat"></a-sphere>
+  <a-sphere radius="0.07" position="0.55 1.9 0.5" color="#3a7bd5" material="shader:flat"></a-sphere>
+  <a-sphere radius="0.07" position="-0.35 2.4 0.45" color="#f4c430" material="shader:flat"></a-sphere>
+  <a-sphere radius="0.07" position="0.4 2.7 0.4" color="#e0352b" material="shader:flat"></a-sphere>
+  <a-sphere radius="0.06" position="0 3.05 0.4" color="#3a7bd5" material="shader:flat"></a-sphere>
+</a-entity>
+  
+<a-entity position="-3.3 -1 0">
+  <a-cylinder radius="0.06" height="2.4" position="0 1.2 0" color="#2a2a2a"></a-cylinder>
+  <a-sphere radius="0.22" position="0 2.5 0" color="#ffe9a8" material="shader:flat"></a-sphere>
+  <a-sphere radius="0.4" position="0 2.5 0" color="#ffe9a8" material="shader:flat" opacity="0.25"></a-sphere>
+  <a-light type="point" color="#ffdd99" intensity="0.9" distance="6" position="0 2.5 0"></a-light>
+  <a-entity animation="property: rotation; to: 0 360 0; dur: 9000; loop: true; easing: linear">
+    <a-sphere radius="0.05" position="0.3 2.1 0" color="#e0352b" material="shader:flat"></a-sphere>
+    <a-sphere radius="0.05" position="-0.3 1.9 0.15" color="#3a7bd5" material="shader:flat"></a-sphere>
+    <a-sphere radius="0.05" position="0.1 1.75 -0.28" color="#178044" material="shader:flat"></a-sphere>
+    <a-sphere radius="0.05" position="-0.15 2.25 -0.2" color="#f4c430" material="shader:flat"></a-sphere>
+  </a-entity>
+</a-entity>
+  <a-plane material="shader: chromakey; src: #srcVid; transparent:true" width="1.4" height="1.4" position="0 0.95 -2.6"></a-plane>
+</a-scene>`;
+
+function openWorld(idx, text) {
+  openFor = idx;
+  worldDiv.innerHTML = WORLD_INNER;
+  worldDiv.classList.add('show');
+  closeBtn.classList.add('show');
+  caption.textContent = text;
+  caption.classList.add('show');
+  hint.style.opacity = '0';
+  document.getElementById('srcVid').play();
+  lookHint.classList.add('show');
+  setTimeout(() => lookHint.classList.remove('show'), 6000);
+  // iOS Safari only grants gyroscope access from inside a real tap -- ask on first tap of the scene.
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    const grant = () => { DeviceOrientationEvent.requestPermission().catch(() => {}); worldDiv.removeEventListener('touchstart', grant); };
+    worldDiv.addEventListener('touchstart', grant, { once: true });
+  }
+}
+function closeWorld() {
+  openFor = null;
+  worldDiv.classList.remove('show');
+  worldDiv.innerHTML = '';
+  closeBtn.classList.remove('show');
+  caption.classList.remove('show');
+  hint.style.opacity = '1';
+}
+closeBtn.addEventListener('click', closeWorld);
+
+document.querySelectorAll('[mindar-image-target]').forEach((el, idx) => {
+  el.addEventListener('targetFound', () => {
+    if (openFor !== idx) openWorld(idx, el.dataset.caption);
+  });
+  // targetLost is ignored on purpose: the 360 scene stays open until the person taps close.
+});
+</script>
+</body></html>
